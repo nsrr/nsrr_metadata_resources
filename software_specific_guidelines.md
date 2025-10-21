@@ -1,7 +1,7 @@
 ## Software specific guidelines for data and data dictionary/metadata format
 
 ### REDCap
-1. Data files can be exported in formats such as `.csv`, and `.RData`
+1. Data files can be exported in formats such as `.csv`, and `.RData`. For longitudinal datasets, we recommend data to be exported in long format (one row per subject per event).
   a. Recommended settings for manual GUI export
   
 | Option                           | Recommendation        |
@@ -12,6 +12,7 @@
 | Export value labels or codes?    | Codes (numeric)       |
 | Missing values                   | Keep blank            |
 | Date/time format                 | ISO-8601 (YYYY-MM-DD) |
+| Include event/instance fields    | (always keep `redcap_event_name`, `redcap_repeat_instrument`, `redcap_repeat_instance`) |
   
   b. Export data via the REDCap API
 ```
@@ -42,7 +43,7 @@ metadata <- redcap_metadata_read(
 write.csv(records,  "data/project_data.csv",  row.names = FALSE)
 write.csv(metadata, "metadata/data_dictionary.csv", row.names = FALSE)
 ```
-2. Export the REDCap data dictionary in a flat `.csv` file with one row per variable (i.e., field). Key columns from the data dictionary includes:
+2. Export the REDCap data dictionary in a flat `.csv` file with one row per variable (i.e., field). For longitudinal datasets, events metadata should also be exported (e.g., event-instrument mapping). Key columns from the data dictionary includes:
 
 | Column                                       | Description                                              |
 | -------------------------------------------- | -------------------------------------------------------- |
