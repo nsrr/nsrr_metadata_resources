@@ -2,6 +2,7 @@
 
 ### REDCap
 1. Data files can be exported in formats such as `.csv`, and `.RData`. For longitudinal datasets, we recommend data to be exported in long format (one row per subject per event).
+
   a. Recommended settings for manual GUI export
   
 | Option                           | Recommendation        |
