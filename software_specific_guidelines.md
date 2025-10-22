@@ -6,8 +6,9 @@
   
 | Option                           | Recommendation        |
 |----------------------------------|-----------------------|
-| Export format                    | Choose 'CSV / Microsoft Excal (raw data)'          |
-| De-identification options        | Check 'Remove All Identifier Fields'               |
+| Export format                    | CSV / Microsoft Excal (raw data)          |
+| De-identification options        | Remove All Identifier Fields              |
+| Set CSV delimiter character      | comma                                     |
   
   b. Export data via the REDCap API
 ```
