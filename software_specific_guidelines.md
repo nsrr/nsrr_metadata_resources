@@ -6,13 +6,8 @@
   
 | Option                           | Recommendation        |
 |----------------------------------|-----------------------|
-| De-identify data?                | Yes                   |
-| Export data format               | CSV                   |
-| Include variable names or labels | Variable names        |
-| Export value labels or codes?    | Codes (numeric)       |
-| Missing values                   | Keep blank            |
-| Date/time format                 | ISO-8601 (YYYY-MM-DD) |
-| Include event/instance fields    | (always keep `redcap_event_name`, `redcap_repeat_instrument`, `redcap_repeat_instance`) |
+| Export format                    | Choose 'CSV / Microsoft Excal (raw data)'          |
+| De-identification options        | Check 'Remove All Identifier Fields'               |
   
   b. Export data via the REDCap API
 ```
@@ -79,7 +74,7 @@ write.csv(value_labels, "metadata/value_labels_long.csv", row.names = FALSE)
 
 ### SPSS
 1. Data files can be exported in `.csv` (preferred) or `.xlsx` format  
-  a. Keep the variable names in the header and numeric values (not labels) in the cell	
+  a. Keep the variable names in the header and numeric values (not labels) in the cells	
   b. Keep missing values consistent and document them in the data dictionary
 
 ```
@@ -119,7 +114,7 @@ OMSEND TAG=['DICT_VALS'].
 
 ### SAS
 1.	Data files can be exported in .sas7bdat, .csv, .xlsx format
-  a. If exported in `.csv` format, keep the variable names in the header and numeric values (not labels) in the cell.
+  a. If exported in `.csv` format, keep the variable names in the header and numeric values (not labels) in the cells.
   b. Keep missing values consistent and document them in the data dictionary
 2.	NSRR recommends the data dictionaries and value labels to be extracted and to be saved as another table (`.csv`)
   a. Extract data dictionary (`PROC CONTENTS`)
