@@ -2,7 +2,7 @@
 
 This document provides software-specific best-practice guidance and code samples for exporting research data and accompanying data dictionaries from analytic or data-collection platforms such as **REDCap**, **SPSS**, **SAS**, and **Stata**. The goal is to simplify data preparation for NSRR ingestion for data contributors who currently use these platforms, and ensures compliance with the NSRR data and metadata standards. The sample code snippets included here are intended as reference templates to illustrate recommended steps and syntax. Users should review and adapt the examples according to their local environment, file paths, and software version. Because interface options and command syntax can vary across versions, always validate the export results and document any modifications or assumptions made when implementing these procedures.
 
-### REDCap {#redcap}
+### REDCap
 
 1. Data files can be exported in formats such as `.csv`, and `.RData`. For longitudinal datasets, we recommend data to be exported in long format (one row per subject per event).
   a. Recommended settings for manual GUI export
@@ -80,7 +80,7 @@ value_labels <- metadata %>%
 write.csv(value_labels, "metadata/value_labels_long.csv", row.names = FALSE)
 ```
 
-### SPSS {#spss}
+### SPSS
 1. Data files can be exported in `.csv` (preferred) or `.xlsx` format  
   a. Keep the variable names in the header and numeric values (not labels) in the cells	
   b. Keep missing values consistent and document them in the data dictionary
