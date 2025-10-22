@@ -10,6 +10,8 @@
 | Export format                    | CSV / Microsoft Excal (raw data)          |
 | De-identification options        | Remove All Identifier Fields              |
 | Set CSV delimiter character      | comma                                     |
+
+![REDCap Data Export Screenshot](./images/redcap_export_screenshot.png "REDCap Data Export Screenshot")
   
   b. Export data via the REDCap API
 ```
