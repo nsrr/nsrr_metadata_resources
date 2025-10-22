@@ -1,8 +1,10 @@
 ## Software specific guidelines for data and data dictionary/metadata format
 
-### REDCap
-1. Data files can be exported in formats such as `.csv`, and `.RData`. For longitudinal datasets, we recommend data to be exported in long format (one row per subject per event).
+This document provides software-specific best-practice guidance and code samples for exporting research data and accompanying data dictionaries from analytic or data-collection platforms such as **REDCap**, **SPSS**, **SAS**, and **Stata**. The goal is to simplify data preparation for NSRR ingestion for data contributors who currently use these platforms, and ensures compliance with the NSRR data and metadata standards. The sample code snippets included here are intended as reference templates to illustrate recommended steps and syntax. Users should review and adapt the examples according to their local environment, file paths, and software version. Because interface options and command syntax can vary across versions, always validate the export results and document any modifications or assumptions made when implementing these procedures.
 
+### REDCap {#redcap}
+
+1. Data files can be exported in formats such as `.csv`, and `.RData`. For longitudinal datasets, we recommend data to be exported in long format (one row per subject per event).
   a. Recommended settings for manual GUI export
   
 | Option                           | Recommendation        |
@@ -14,6 +16,7 @@
 ![REDCap Data Export Screenshot](./images/redcap_export_screenshot.png "REDCap Data Export Screenshot")
   
   b. Export data via the REDCap API
+  
 ```
 # sample code for exporting REDCap data in R
 
@@ -42,6 +45,7 @@ metadata <- redcap_metadata_read(
 write.csv(records,  "data/project_data.csv",  row.names = FALSE)
 write.csv(metadata, "metadata/data_dictionary.csv", row.names = FALSE)
 ```
+
 2. Export the REDCap data dictionary in a flat `.csv` file with one row per variable (i.e., field). For longitudinal datasets, events metadata should also be exported (e.g., event-instrument mapping). Key columns from the data dictionary includes:
 
 | Column                                       | Description                                              |
@@ -76,7 +80,7 @@ value_labels <- metadata %>%
 write.csv(value_labels, "metadata/value_labels_long.csv", row.names = FALSE)
 ```
 
-### SPSS
+### SPSS {#spss}
 1. Data files can be exported in `.csv` (preferred) or `.xlsx` format  
   a. Keep the variable names in the header and numeric values (not labels) in the cells	
   b. Keep missing values consistent and document them in the data dictionary
@@ -106,6 +110,7 @@ OMSEND TAG=['DICT_VARS'].
 
 3. Code book (variable label table)
   a. Create a long format reference table of coded values for categorical variables (e.g., 1=Female, 2=Male, etc.)
+  
 ```
 OMS
 /SELECT TABLES
@@ -117,6 +122,7 @@ OMSEND TAG=['DICT_VALS'].
 ```
 
 ### SAS
+
 1.	Data files can be exported in .sas7bdat, .csv, .xlsx format
   a. If exported in `.csv` format, keep the variable names in the header and numeric values (not labels) in the cells.
   b. Keep missing values consistent and document them in the data dictionary
@@ -159,7 +165,19 @@ run;
 ### STATA
 
 1. Data files are recommended to be exported in the `.csv` format
+
 ```
+* Change these paths:
+local root   "C:/project"
+local data   "`root'/data"
+local meta   "`root'/metadata"
+cap mkdir "`root'"
+cap mkdir "`data'"
+cap mkdir "`meta'"
+
+* Assume your dataset is already in memory, or open it:
+use "`data'/studydata.dta", clear
+
 * CSV for analysis: numeric codes (no value-label expansion)
 export delimited using "`data'/studydata_clean.csv", ///
     replace varnames(1) nolabel quote always encoding(utf-8)
@@ -175,9 +193,6 @@ frame create dict str64 variable_name str244 variable_label ///
                    str16 storage_type str24 display_format ///
                    str64 value_label_name int var_order
 
-frame change default
-ds, has(type numeric)
-local nvars : word count `r(varlist)'
 
 * Build dictionary by looping vars in order
 local order = 0
@@ -201,9 +216,13 @@ export delimited using "`meta'/variable_dictionary.csv", replace quote always en
 3. Extract value-label pairs as a long table and export as a `.csv` file
 
 ```
-ssc install labelsave
+* Dependencies
+ssc install labelsave //run once
 
 # Edit paths
+clear all
+set more off
+unicode encoding set "utf-8"
 local root  "C:/project"
 local meta  "`root'/metadata"
 cap mkdir "`meta'"
@@ -214,56 +233,75 @@ labelsave, saving("`meta'/value_labels_do.do") replace
 * 2) Parse that do-file into a long dataset of (format, value, label)
 tempname fh
 tempfile lbltxt outdta
+
+* Normalize line endings to LF to make reading line-by-line stable
 filefilter "`meta'/value_labels_do.do" "`lbltxt'", from("\r") to("\n") replace
 
-* Prepare a simple collector dataset
+* Collector (store value as string to cover numeric and string codes)
 capture postutil clear
-postfile H str64 value_label_name str64 value str244 value_label using "`outdta'", replace
+postfile H str64 value_label_name str244 value str244 value_label using "`outdta'", replace
 
 file open `fh' using "`lbltxt'", read text
-local current_fmt ""
 
-while r(eof)==0 {
-    file read `fh' line
-    if r(eof) continue
+* Prime the first read (so r(eof) is defined)
+file read `fh' line
+while (r(eof)==0) {
     local L = trim(`"`line'"')
 
-    * Look for lines that define labels, e.g.:
-    * label define SEX 1 "Male" 2 "Female", modify
+    * Match:  label define FMT <code> "<text>" [<code> "<text>"]..., [modify|add]
     if substr("`L'",1,12)=="label define" {
-        * Extract the format name (3rd token)
-        tokenize "`L'"
-        local current_fmt = "`3'"
+        tokenize "`L'", quotes
+        local fmt = "`3'"
 
-        * Remove leading part "label define <fmt>"
-        local tail = substr("`L'", length("label define `current_fmt'")+2, .)
+        * Remove leading prefix once, drop trailing options
+        local prefix = "label define `fmt'"
+        local tail   = trim(subinstr("`L'", "`prefix'", "", 1))
+        local tail   = regexr("`tail'", ",[ ]*(modify|add)$", "")
+        local tail   = trim("`tail'")
 
-        * Strip trailing ", modify" or ", add" if present
-        local tail = regexr("`tail'", ",[ ]*(modify|add)$", "")
+        * Tokenize tail with quotes preserved
+        tokenize "`tail'", quotes
+        local i = 1
+        while "``i''" != "" {
+            local tok = "``i''"
 
-        * Now token-by-token scan for <number> "<text>" pairs
-        * This is a simple parser for common cases (one value per pair).
-        quietly {
-            local i 1
-            tokenize "`tail'"
-            while "``i''" != "" {
-                local t = "``i''"
-                * numeric code? (integer or decimal, may be negative)
-                if regexm("`t'","^-?[0-9]+(\.[0-9]+)?$") {
-                    local code = "`t'"
-                    local ++i
-                    local lbltok = "``i''"
-                    * label text should be quoted "..."
-                    if substr("`lbltok'",1,1)==`"""' & substr("`lbltok'",-1,1)==`"""' {
-                        * remove surrounding quotes
-                        local lab = substr("`lbltok'",2,strlen("`lbltok'")-2)
-                        post H ("`current_fmt'") ("`code'") ("`lab'")
-                    }
+            * --- CASE A: string-valued code (token itself is quoted) ---
+            if substr("`tok'",1,1)==`"""' & substr("`tok'",-1,1)==`"""' {
+                * code is the quoted token
+                local code = substr(`"`tok'"', 2, strlen(`"`tok'"')-2)
+                local ++i
+                local lbltok = "``i''"
+                if substr("`lbltok'",1,1)==`"""' & substr("`lbltok'",-1,1)==`"""' {
+                    * strip outer quotes
+                    local lab = substr(`"`lbltok'"', 2, strlen(`"`lbltok'"')-2)
+                    * unescape doubled quotes inside label -> "
+                    local lab = subinstr("`lab'", char(34)+char(34), char(34), .)
+                    post H ("`fmt'") ("`code'") ("`lab'")
                 }
                 local ++i
+                continue
             }
+
+            * --- CASE B: numeric code (possibly negative/decimal) ---
+            if regexm("`tok'", "^-?[0-9]+(\.[0-9]+)?$") {
+                local code = "`tok'"
+                local ++i
+                local lbltok = "``i''"
+                if substr("`lbltok'",1,1)==`"""' & substr("`lbltok'",-1,1)==`"""' {
+                    local lab = substr(`"`lbltok'"', 2, strlen(`"`lbltok'"')-2)
+                    local lab = subinstr("`lab'", char(34)+char(34), char(34), .)
+                    post H ("`fmt'") ("`code'") ("`lab'")
+                }
+                local ++i
+                continue
+            }
+
+            * Otherwise, skip token (handles stray commas/options safely)
+            local ++i
         }
     }
+
+    file read `fh' line
 }
 file close `fh'
 postclose H
