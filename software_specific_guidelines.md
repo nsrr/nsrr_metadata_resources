@@ -150,8 +150,10 @@ run;
   b. Extract value labels from `FORMAT catalogs` via `PROC FORMAT`.
 
 ```
+/* Place existing SAS format catalog into mydata library first */
+
 /* Export all user-defined formats */
-proc format cntlout=mydata.format_catalog;
+proc format library=mydata cntlout=mydata.format_catalog;
 run;
 
 /* Save as CSV for documentation */
